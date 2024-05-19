@@ -3,36 +3,32 @@ import threading
 import os
 
 # Configurações do servidor
-HOST = '127.0.0.1'  # Endereço IP do servidor
-PORT = 9999         # Porta para comunicação (maior que 1024)
-BUFFER_SIZE = 1024  # Tamanho do buffer para leitura do arquivo
+HOST = '127.0.0.1'
+PORT = 9999
+BUFFER_SIZE = 8192
 
 class OrlikoskiProtocol:
     def __init__(self):
         pass
 
     def processar_requisicao(self, mensagem):
-        """Processa a requisição do cliente."""
         if not mensagem.startswith("OBTER "):
             return "Erro: Formato de requisição inválido."
-        return mensagem.split(" ")[1]
+        arquivo_requisitado = mensagem.split(" ")[1]
+        return arquivo_requisitado
 
     def processar_resposta_arquivo(self, dados_arquivo):
-        """Processa a resposta do arquivo."""
         if not dados_arquivo:
             return "Erro: Dados do arquivo não recebidos."
         return dados_arquivo
 
     def processar_confirmacao(self, mensagem):
-        """Processa a confirmação de recebimento."""
         return mensagem
 
     def processar_erro(self, mensagem):
-        """Processa mensagens de erro."""
         return mensagem
 
 def handle_client(client_socket):
-    """Lida com a requisição do cliente em uma thread separada."""
     protocolo = OrlikoskiProtocol()
     try:
         request = client_socket.recv(1024).decode()
@@ -45,6 +41,8 @@ def handle_client(client_socket):
             print('Mensagem de erro enviada para o cliente.')
         else:
             if os.path.exists(arquivo_requisitado):
+                tamanho_arquivo = os.path.getsize(arquivo_requisitado)
+                client_socket.send(f"TAMANHO {tamanho_arquivo}".encode())
                 with open(arquivo_requisitado, 'rb') as file:
                     while True:
                         dados = file.read(BUFFER_SIZE)
@@ -62,7 +60,6 @@ def handle_client(client_socket):
         client_socket.close()
 
 def main():
-    """Inicializa o servidor TCP."""
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_socket.bind((HOST, PORT))
     server_socket.listen(5)
